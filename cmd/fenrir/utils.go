@@ -80,9 +80,8 @@ func injectOpenCodeMCP() error {
 	}
 
 	mcpBlock["fenrir"] = map[string]interface{}{
-		"type":    "local",
-		"command": []string{resolveBinaryPath(), "mcp"},
-		"enabled": true,
+		"command": resolveBinaryPath(),
+		"args":    []string{"mcp"},
 	}
 
 	config["mcpServers"] = mcpBlock
