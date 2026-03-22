@@ -6,17 +6,15 @@ $URL = "https://github.com/$REPO/releases/latest/download/$BIN"
 $INSTALL_DIR = "$env:LOCALAPPDATA\Programs\fenrir"
 $EXE_PATH = "$INSTALL_DIR\fenrir.exe"
 
-$VERSION = "v0.5.1"
+$VERSION = "v0.6.0"
 
 Clear-Host
-Write-Host "   ___ ___ _  _ ___ ___ ___ " -ForegroundColor Cyan
-Write-Host "  | __| __| \| | _ \_ _| _ \" -ForegroundColor Cyan
-Write-Host "  | _|| _|| .  |   /| ||   /" -ForegroundColor Green
-Write-Host "  |_| |___|_|\_|_|_\___|_|_\ " -ForegroundColor Green
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "  Fenrir Installer $VERSION" -ForegroundColor Cyan
+Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  >> NO-CODE & AI GOVERNANCE LAYER << " -ForegroundColor Gray
-Write-Host "  ----------------------------------- " -ForegroundColor Gray
-Write-Host "  Installation version: $VERSION" -ForegroundColor DarkCyan
+Write-Host "  >> Intelligence & Governance Layer <<" -ForegroundColor Gray
+Write-Host "  -----------------------------------" -ForegroundColor Gray
 Write-Host ""
 
 if (Test-Path $EXE_PATH) {
