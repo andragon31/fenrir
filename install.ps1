@@ -6,9 +6,17 @@ $URL = "https://github.com/$REPO/releases/latest/download/$BIN"
 $INSTALL_DIR = "$env:LOCALAPPDATA\Programs\fenrir"
 $EXE_PATH = "$INSTALL_DIR\fenrir.exe"
 
-Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "  Fenrir Installer v1.0" -ForegroundColor Cyan
-Write-Host "======================================" -ForegroundColor Cyan
+$VERSION = "v0.5.1"
+
+Clear-Host
+Write-Host "   ___ ___ _  _ ___ ___ ___ " -ForegroundColor Cyan
+Write-Host "  | __| __| \| | _ \_ _| _ \" -ForegroundColor Cyan
+Write-Host "  | _|| _|| .  |   /| ||   /" -ForegroundColor Green
+Write-Host "  |_| |___|_|\_|_|_\___|_|_\ " -ForegroundColor Green
+Write-Host ""
+Write-Host "  >> NO-CODE & AI GOVERNANCE LAYER << " -ForegroundColor Gray
+Write-Host "  ----------------------------------- " -ForegroundColor Gray
+Write-Host "  Installation version: $VERSION" -ForegroundColor DarkCyan
 Write-Host ""
 
 if (Test-Path $EXE_PATH) {
@@ -58,9 +66,8 @@ if (-not $alreadyInUser) {
 $env:Path = "$INSTALL_DIR;$currentMachinePath;$currentUserPath"
 
 Write-Host ""
-Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "  Verification" -ForegroundColor Cyan
-Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "  [ Verification ]" -ForegroundColor DarkCyan
+Write-Host "  ----------------" -ForegroundColor Gray
 Write-Host ""
 
 try {
