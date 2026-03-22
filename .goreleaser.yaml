@@ -1,0 +1,161 @@
+project_name: fenrir
+version: 2
+git:
+  tag_template: 'v{{ .Version }}'
+  changelog:
+    sort: asc
+    filters:
+      exclude:
+        - '^docs:'
+        - '^test:'
+        - '^chore:'
+        - '^refactor:'
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - id: linux-amd64
+    goos: linux
+    goarch: amd64
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/fenrir
+    binary: fenrir
+    dir: dist
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+    checksum:
+      name_template: 'checksums.txt'
+    format: binary
+
+  - id: linux-arm64
+    goos: linux
+    goarch: arm64
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/fenrir
+    binary: fenrir
+    dir: dist
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+  - id: darwin-amd64
+    goos: darwin
+    goarch: amd64
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/fenrir
+    binary: fenrir
+    dir: dist
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+  - id: darwin-arm64
+    goos: darwin
+    goarch: arm64
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/fenrir
+    binary: fenrir
+    dir: dist
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+  - id: windows-amd64
+    goos: windows
+    goarch: amd64
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/fenrir
+    binary: fenrir.exe
+    dir: dist
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+archives:
+  - id: default
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - none:*
+    checksums:
+      name_template: 'checksums.txt'
+
+brews:
+  - repository:
+      owner: andragon31
+      name: homebrew-fenrir
+      branch: main
+      pull_request:
+        enabled: true
+    directory: .
+    commit_author:
+      name: andragon31
+      email: andragon31@users.noreply.github.com
+    commit_msg_template: |
+      Automation: {{ .ProjectName }} {{ .Tag }}
+    homepage: https://github.com/andragon31/fenrir
+    description: |
+      Fenrir is the first institutional intelligence layer for teams 
+      developing software with AI agents.
+    license: MIT
+    install: |
+      bin.install "fenrir"
+    test: |
+      system "#{bin}/fenrir version"
+
+checksum:
+  algorithm: sha256
+  id: fenrir
+  path: '**/checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+release:
+  github:
+    owner: andragon31
+    name: fenrir
+  draft: true
+  prerelease: auto
+  name_template: "{{ .Tag }}"
+  header: |
+    ## Installation
+
+    ### Homebrew (recommended)
+    ```bash
+    brew install andragon31/tap/fenrir
+    ```
+
+    ### Binary
+    Download the appropriate binary for your platform and add it to your PATH.
+
+    ### From source
+    ```bash
+    go install github.com/andragon31/fenrir@latest
+    ```
+  footer: |
+    ## Documentation
+
+    Visit [https://github.com/andragon31/fenrir](https://github.com/andragon31/fenrir) for full documentation.
+
+    ## Contributing
+
+    Contributions welcome!

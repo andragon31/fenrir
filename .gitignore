@@ -1,0 +1,26 @@
+# Binaries
+bin/
+dist/
+*.exe
+*.exe~
+
+# Dependencies
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data
+.fenrir/
+
+# Test
+*.test
+coverage.txt
+coverage.html
+
+# OS
+.DS_Store
+Thumbs.db
