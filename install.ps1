@@ -10,14 +10,16 @@ $INSTALL_DIR = "$env:LOCALAPPDATA\Programs\fenrir"
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
 Move-Item $TMP "$INSTALL_DIR\$BIN" -Force
 
-$ENV:PATH = "$INSTALL_DIR;$ENV:PATH"
-[Environment]::SetEnvironmentVariable("PATH", "$INSTALL_DIR;$ENV:PATH", "User")
+$env:PATH = "$INSTALL_DIR;$env:PATH"
+[Environment]::SetEnvironmentVariable("PATH", "$INSTALL_DIR;$env:PATH", "User")
 
 Write-Host ""
 Write-Host "Fenrir installed to $INSTALL_DIR"
 Write-Host ""
-Write-Host "Run:"
-Write-Host "  fenrir version          # Verify"
-Write-Host "  fenrir setup [agent]   # Setup for your AI tool"
+Write-Host "Verifying installation..."
+& "$INSTALL_DIR\$BIN" version
+
 Write-Host ""
-Write-Host "Note: You may need to restart your terminal for PATH changes to take effect."
+Write-Host "Next steps:"
+Write-Host "  fenrir setup opencode   # Setup for OpenCode"
+Write-Host "  fenrir tui              # Open TUI"
