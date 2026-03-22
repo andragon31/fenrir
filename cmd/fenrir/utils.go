@@ -74,7 +74,7 @@ func injectOpenCodeMCP() error {
 		return err
 	}
 
-	mcpBlock, _ := config["mcp"].(map[string]interface{})
+	mcpBlock, _ := config["mcpServers"].(map[string]interface{})
 	if mcpBlock == nil {
 		mcpBlock = make(map[string]interface{})
 	}
@@ -85,7 +85,7 @@ func injectOpenCodeMCP() error {
 		"enabled": true,
 	}
 
-	config["mcp"] = mcpBlock
+	config["mcpServers"] = mcpBlock
 	output, _ := json.MarshalIndent(config, "", "  ")
 	return os.WriteFile(configPath, output, 0644)
 }
