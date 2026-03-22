@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TU_ORG/fenrir/internal/graph"
+	"github.com/andragon31/fenrir/internal/graph"
 )
 
 type Sync struct {

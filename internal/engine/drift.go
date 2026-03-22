@@ -3,7 +3,7 @@ package engine
 import (
 	"fmt"
 
-	"github.com/TU_ORG/fenrir/internal/graph"
+	"github.com/andragon31/fenrir/internal/graph"
 )
 
 type DriftEngine struct {

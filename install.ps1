@@ -1,7 +1,7 @@
 $REPO = "andragon31/fenrir"
 $BIN = "fenrir-windows-amd64.exe"
-$TMP = [System.IO.Path]::GetTempFileName()
 $URL = "https://github.com/$REPO/releases/latest/download/$BIN"
+$TMP = "$env:TEMP\fenrir_install.exe"
 
 Write-Host "Downloading Fenrir..."
 Invoke-WebRequest -Uri $URL -OutFile $TMP

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/TU_ORG/fenrir/internal/graph"
+	"github.com/andragon31/fenrir/internal/graph"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
