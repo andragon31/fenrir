@@ -45,6 +45,7 @@ func (s *Server) registerMemoryTools() {
 		mcp.WithDescription("Save a structured observation to the project knowledge graph"),
 		mcp.WithString("title", mcp.Required(), mcp.Description("Short descriptive title")),
 		mcp.WithString("type", mcp.Required(), mcp.Description("Type of observation"), mcp.Enum("bugfix", "decision", "pattern", "failed_attempt", "discovery", "config", "refactor")),
+		mcp.WithString("topic_key", mcp.Description("Stable key to update evolving topics (e.g. auth-logic, database-schema)")),
 		mcp.WithString("what", mcp.Required(), mcp.Description("What was done or discovered")),
 		mcp.WithString("why", mcp.Required(), mcp.Description("Why it was necessary")),
 		mcp.WithString("where", mcp.Description("Files or modules affected")),
@@ -229,6 +230,7 @@ func (s *Server) handleMemSave(ctx context.Context, request mcp.CallToolRequest)
 	
 	title := getString(args, "title")
 	nodeType := getString(args, "type")
+	topicKey := getStringOrDefault(args, "topic_key", "")
 	what := getString(args, "what")
 	why := getString(args, "why")
 	where := getStringOrDefault(args, "where", "")
@@ -247,6 +249,7 @@ func (s *Server) handleMemSave(ctx context.Context, request mcp.CallToolRequest)
 	node := &graph.Node{
 		Type:       nodeType,
 		Title:      title,
+		TopicKey:   topicKey,
 		Content:    s.graph.SanitizePrivateTags(s.graph.SanitizeSecrets(content)),
 		Confidence: confidence,
 		Scope:      where,

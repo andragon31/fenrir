@@ -2,11 +2,10 @@ package tui
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/andragon31/fenrir/internal/graph"
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -157,12 +156,7 @@ func (m *Model) loadDrift() {
 }
 
 func (m *Model) loadStats() {
-	stats, err := m.graph.GetStats()
-	if err != nil {
-		m.err = err
-		return
-	}
-	m.stats = stats
+	m.loadDashboard()
 }
 
 func (m *Model) View() string {
@@ -345,19 +339,8 @@ func NewProgram(model *Model) *tea.Program {
 	return tea.NewProgram(model, tea.WithAltScreen())
 }
 
-func Run() error {
-	g, err := graph.New(getDataDir())
-	if err != nil {
-		return err
-	}
-	defer g.Close()
-
+func Run(g *graph.Graph) error {
 	model := NewModel(g)
-	_, err = NewProgram(model).Run()
+	_, err := NewProgram(model).Run()
 	return err
-}
-
-func getDataDir() string {
-	home, _ := os.UserHomeDir()
-	return home + "/.fenrir"
 }
