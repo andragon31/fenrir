@@ -4,7 +4,7 @@ $REPO = "andragon31/fenrir"
 $BIN = "fenrir-windows-amd64.exe"
 $URL = "https://github.com/$REPO/releases/latest/download/$BIN"
 $INSTALL_DIR = "$env:LOCALAPPDATA\Programs\fenrir"
-$EXE_PATH = "$INSTALL_DIR\$BIN"
+$EXE_PATH = "$INSTALL_DIR\fenrir.exe"
 
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host "  Fenrir Installer v1.0" -ForegroundColor Cyan
@@ -27,6 +27,7 @@ try {
 Write-Host "[2/3] Installing to $INSTALL_DIR..."
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
 Move-Item -Path $TMP -Destination $EXE_PATH -Force
+Rename-Item -Path $EXE_PATH -NewName "fenrir.exe" -Force
 
 Write-Host "[3/3] Adding to PATH..."
 
