@@ -106,7 +106,12 @@ func (g *Graph) SaveNode(node *Node) (string, error) {
 		return "", err
 	}
 
-	g.nodeCount++
+	if node.Type == "decision" || node.Type == "policy" {
+		g.cacheMutex.Lock()
+		g.policyCache = nil
+		g.cacheMutex.Unlock()
+	}
+
 	return node.ID, nil
 }
 
@@ -271,6 +276,30 @@ func (g *Graph) UpdateConfidence(nodeID string, confidence float64, reason strin
 		WHERE id = ?
 	`, confidence, reason, nodeID)
 	return err
+}
+
+func (g *Graph) GetSessionNodes(sessionID string) ([]Node, error) {
+	rows, err := g.db.Query(`
+		SELECT id, type, title, content, confidence, status, scope, weight, tags, session_id, created_at, updated_at
+		FROM nodes WHERE session_id = ?
+	`, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var nodes []Node
+	for rows.Next() {
+		var node Node
+		var tagsJSON string
+		err := rows.Scan(&node.ID, &node.Type, &node.Title, &node.Content, &node.Confidence, &node.Status, &node.Scope, &node.Weight, &tagsJSON, &node.SessionID, &node.CreatedAt, &node.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		json.Unmarshal([]byte(tagsJSON), &node.Tags)
+		nodes = append(nodes, node)
+	}
+	return nodes, nil
 }
 
 func toJSON(v interface{}) string {

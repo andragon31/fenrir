@@ -248,23 +248,40 @@ func (m *Model) sessionsView() string {
 func (m *Model) driftView() string {
 	var s strings.Builder
 
-	s.WriteString(headerStyle.Render("┌─ Drift Scores ──────────────────────────────┐\n"))
+	s.WriteString(headerStyle.Render("┌─ Drift Analysis ─────────────────────────────┐\n"))
 
 	if len(m.drifts) == 0 {
-		s.WriteString("│  No drift data available                     │\n")
+		s.WriteString("│  " + dimStyle.Render("No architectural drift detected yet.") + "          │\n")
 	} else {
 		for _, drift := range m.drifts {
 			bar := m.driftBar(drift.Score)
-			_ = fenrirGreen // Color placeholder for future styling
-			if drift.Score > 0.6 {
-				bar = "⚠️ " + bar
+			statusIcon := "🟢"
+			scoreStyle := lipgloss.NewStyle().Foreground(fenrirGreen)
+
+			if drift.Score > 0.4 {
+				statusIcon = "🟡"
+				scoreStyle = lipgloss.NewStyle().Foreground(fenrirYellow)
+			}
+			if drift.Score > 0.7 {
+				statusIcon = "🔴"
+				scoreStyle = lipgloss.NewStyle().Foreground(fenrirRed)
 			}
 
-			s.WriteString(fmt.Sprintf("│ %-20s %s %.2f    │\n", drift.Module, bar, drift.Score))
+			moduleStr := drift.Module
+			if len(moduleStr) > 20 {
+				moduleStr = moduleStr[:17] + "..."
+			}
+
+			s.WriteString(fmt.Sprintf("│ %s %-20s %s %s │\n", 
+				statusIcon, 
+				moduleStr, 
+				bar, 
+				scoreStyle.Render(fmt.Sprintf("%.2f", drift.Score))))
 		}
 	}
 
 	s.WriteString("└──────────────────────────────────────────────┘\n")
+	s.WriteString(dimStyle.Render("Drift indicates deviation from established patterns.\n"))
 
 	return s.String()
 }

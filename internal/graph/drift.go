@@ -259,7 +259,33 @@ func (g *Graph) Trace(target string, depth int) ([]TraceEntry, error) {
 	return entries, nil
 }
 
-func (g *Graph) CalculateDrift(sessionID string) {
-	// Triggered after session ends to evaluate architectural alignment
-	// For now automated via UpdateDriftScores
+func (g *Graph) CalculateDrift(sessionID string) error {
+	// 1. Get session nodes
+	nodes, err := g.GetSessionNodes(sessionID)
+	if err != nil || len(nodes) == 0 {
+		return err
+	}
+
+	var sessionConfSum float64
+	for _, n := range nodes {
+		sessionConfSum += n.Confidence
+	}
+	sessionAvg := sessionConfSum / float64(len(nodes))
+
+	// 2. Get global baseline
+	globalAvg, _ := g.GetConfidenceAverage()
+
+	// 3. If session confidence is significantly lower than baseline, signal drift
+	if sessionAvg < globalAvg*0.8 {
+		// Log a drift event (this would trigger UpdateDriftScores via session end logic)
+		fmt.Printf("[Drift] Session %s confidence (%.2f) is below baseline (%.2f)\n", sessionID, sessionAvg, globalAvg)
+	}
+
+	return nil
+}
+
+func (g *Graph) GetConfidenceAverage() (float64, error) {
+	var avg float64
+	err := g.db.QueryRow("SELECT COALESCE(AVG(confidence), 0.7) FROM (SELECT confidence FROM nodes ORDER BY created_at DESC LIMIT 100)").Scan(&avg)
+	return avg, err
 }

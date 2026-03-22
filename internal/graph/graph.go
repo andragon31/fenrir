@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -16,9 +17,16 @@ const (
 )
 
 type Graph struct {
-	db       *sql.DB
-	dataDir  string
-	nodeCount int
+	db          *sql.DB
+	dataDir     string
+	nodeCount   int
+	policyCache []Policy
+	cacheMutex  sync.RWMutex
+}
+
+type Policy struct {
+	Title   string
+	Content string
 }
 
 type AuditLog struct {

@@ -166,6 +166,17 @@ func (s *Server) registerEnforcerTools() {
 		mcp.WithString("context", mcp.Description("Additional context")),
 	)
 	s.server.AddTool(predict, s.handlePredict)
+
+	archImpact := mcp.NewTool("arch_impact",
+		mcp.WithDescription("Predict the architectural impact of a proposed change"),
+		mcp.WithString("target", mcp.Required(), mcp.Description("File, module or concept to change")),
+	)
+	s.server.AddTool(archImpact, s.handleArchImpact)
+
+	archVisualize := mcp.NewTool("arch_visualize",
+		mcp.WithDescription("Generate a Mermaid.js diagram of the current project architecture"),
+	)
+	s.server.AddTool(archVisualize, s.handleArchVisualize)
 }
 
 func (s *Server) registerShieldTools() {
@@ -367,7 +378,7 @@ func (s *Server) handleMemSessionEnd(ctx context.Context, request mcp.CallToolRe
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	s.graph.CalculateDrift(sessionID)
+	go s.graph.CalculateDrift(sessionID)
 
 	result, _ := json.Marshal(dna)
 	return mcp.NewToolResultText(string(result)), nil
@@ -516,8 +527,43 @@ func (s *Server) handlePredict(ctx context.Context, request mcp.CallToolRequest)
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
+	// Also include impact summary if module is specific
+	if module != "" {
+		impact, _ := s.graph.PredictImpact(module)
+		if impact != nil {
+			result := map[string]interface{}{
+				"predictions": predictions,
+				"impact":     impact,
+			}
+			data, _ := json.Marshal(result)
+			return mcp.NewToolResultText(string(data)), nil
+		}
+	}
+
 	data, _ := json.Marshal(predictions)
 	return mcp.NewToolResultText(string(data)), nil
+}
+
+func (s *Server) handleArchImpact(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	target := getString(args, "target")
+
+	result, err := s.graph.PredictImpact(target)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	data, _ := json.Marshal(result)
+	return mcp.NewToolResultText(string(data)), nil
+}
+
+func (s *Server) handleArchVisualize(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	mermaid, err := s.graph.GetArchitectureMermaid()
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	return mcp.NewToolResultText(mermaid), nil
 }
 
 func (s *Server) handleAuditLog(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {

@@ -6,9 +6,45 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
+
+// AuditPackage performs a heuristic-based audit of a package name and version
+func (g *Graph) AuditPackage(name, ecosystem, version string) ([]Issue, error) {
+	issues := []Issue{}
+
+	// 1. Typosquatting check
+	if isSuspiciousName(name) {
+		issues = append(issues, Issue{
+			Type:     "trust",
+			Package:  name,
+			Severity: "medium",
+			Message:  "Suspicious package name (potential typosquatting)",
+		})
+	}
+
+	// 2. Known malicious patterns
+	maliciousPatterns := []string{
+		`.*crypt.*`,
+		`.*miner.*`,
+		`.*steal.*`,
+	}
+	for _, p := range maliciousPatterns {
+		re := regexp.MustCompile(p)
+		if re.MatchString(strings.ToLower(name)) {
+			issues = append(issues, Issue{
+				Type:     "security",
+				Package:  name,
+				Severity: "high",
+				Message:  fmt.Sprintf("Package name matches malicious pattern: %s", p),
+			})
+		}
+	}
+
+	return issues, nil
+}
 
 type PkgCache struct {
 	ID        string    `json:"id"`
