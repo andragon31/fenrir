@@ -6,7 +6,7 @@ $URL = "https://github.com/$REPO/releases/latest/download/$BIN"
 $INSTALL_DIR = "$env:LOCALAPPDATA\Programs\fenrir"
 $EXE_PATH = "$INSTALL_DIR\$BIN"
 
-Write-Host "======================================"
+Write-Host "======================================" -ForegroundColor Cyan
 Write-Host "  Fenrir Installer v1.0" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
@@ -33,12 +33,25 @@ Write-Host "[3/3] Adding to PATH..."
 $currentMachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
 $currentUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
 
-$alreadyInMachine = $currentMachinePath -split ";" | Where-Object { $_ -eq $INSTALL_DIR }
-$alreadyInUser = $currentUserPath -split ";" | Where-Object { $_ -eq $INSTALL_DIR }
+$alreadyInMachine = $currentMachinePath -split ";" | Where-Object { $_.Trim() -eq $INSTALL_DIR }
+$alreadyInUser = $currentUserPath -split ";" | Where-Object { $_.Trim() -eq $INSTALL_DIR }
+
+$pathAdded = $false
 
 if (-not $alreadyInMachine) {
-    [Environment]::SetEnvironmentVariable("Path", "$INSTALL_DIR;$currentMachinePath", "Machine")
-    Write-Host "  Added to System PATH (Machine)" -ForegroundColor Green
+    try {
+        [Environment]::SetEnvironmentVariable("Path", "$INSTALL_DIR;$currentMachinePath", "Machine")
+        Write-Host "  Added to System PATH (Machine)" -ForegroundColor Green
+        $pathAdded = $true
+    } catch {
+        Write-Host "  No admin rights - using User PATH" -ForegroundColor Yellow
+    }
+}
+
+if (-not $alreadyInUser) {
+    [Environment]::SetEnvironmentVariable("Path", "$INSTALL_DIR;$currentUserPath", "User")
+    Write-Host "  Added to User PATH" -ForegroundColor Green
+    $pathAdded = $true
 }
 
 $env:Path = "$INSTALL_DIR;$currentMachinePath;$currentUserPath"
@@ -60,4 +73,10 @@ Write-Host "Next steps:" -ForegroundColor Green
 Write-Host "  fenrir setup opencode   # Setup for OpenCode"
 Write-Host "  fenrir tui              # Open TUI"
 Write-Host ""
-Write-Host "Note: If 'fenrir' is not recognized, restart your terminal." -ForegroundColor Yellow
+
+if ($pathAdded) {
+    Write-Host "NOTE: If 'fenrir' is not found, open a new PowerShell window." -ForegroundColor Yellow
+    Write-Host "      Windows PATH changes require a fresh terminal session." -ForegroundColor Yellow
+} else {
+    Write-Host "IMPORTANT: Run as Administrator to install to System PATH" -ForegroundColor Red
+}

@@ -56,6 +56,10 @@ go install ./cmd/fenrir
 fenrir version
 ```
 
+## Windows Note
+
+If `fenrir` is not found after installation, **open a new PowerShell window**. Windows PATH changes don't take effect in the current terminal. If the issue persists, run the installer as Administrator to install to the system PATH.
+
 ## Quick Setup
 
 After installing, setup for your agent:
