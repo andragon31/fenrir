@@ -10,8 +10,11 @@ $INSTALL_DIR = "$env:LOCALAPPDATA\Programs\fenrir"
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
 Move-Item $TMP "$INSTALL_DIR\$BIN" -Force
 
-$env:PATH = "$INSTALL_DIR;$env:PATH"
-[Environment]::SetEnvironmentVariable("PATH", "$INSTALL_DIR;$env:PATH", "User")
+$SystemPATH = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+$UserPATH = [Environment]::GetEnvironmentVariable("PATH", "User")
+$FullPATH = "$INSTALL_DIR;$SystemPATH;$UserPATH"
+$env:PATH = $FullPATH
+[Environment]::SetEnvironmentVariable("PATH", $FullPATH, "Machine")
 
 Write-Host ""
 Write-Host "Fenrir installed to $INSTALL_DIR"
