@@ -19,6 +19,46 @@ var (
 	version = "0.1.0"
 )
 
+const fenrirInstructions = `# Fenrir Protocol
+
+You have access to Fenrir, an AI Governance & Memory Layer for project memory.
+
+## MEMORY TOOLS (Use these MCP tools):
+
+### Session Start (MANDATORY at session start)
+Call: mem_session_start(goal="your goal", module="current module")
+
+### Before installing packages (MANDATORY)
+Call: pkg_check(name="package name", version="optional version")
+
+### After making changes (MANDATORY)
+Call: mem_save(
+  title="brief description",
+  type="bugfix|decision|pattern|discovery|config|refactor",
+  what="what was done",
+  why="why it was necessary",
+  where="files affected",
+  learned="what to remember"
+)
+
+### Search memory
+Call: mem_find(query="search terms")
+
+### Get context before starting work
+Call: mem_context(module="optional module path", include_predictions=true)
+
+### Session End (MANDATORY before ending)
+Call: mem_session_end()
+
+## RULES:
+1. Start every session with mem_session_start
+2. Save important decisions, patterns, and discoveries with mem_save
+3. Use mem_find before asking user questions - check memory first
+4. Use pkg_check before installing packages
+5. End every session with mem_session_end
+6. If unsure about a package, use pkg_license and pkg_audit
+`
+
 func main() {
 	rootCmd := &cobra.Command{
 		Use:   "fenrir",
@@ -183,6 +223,7 @@ func (i *OpenCodeInstaller) Install() error {
 
 	configDir, _ := os.UserConfigDir()
 	configPath := configDir + "/opencode/opencode.json"
+	instructionsPath := configDir + "/opencode/FENRIR.md"
 	os.MkdirAll(configDir+"/opencode", 0755)
 
 	config := fmt.Sprintf(`{
@@ -194,7 +235,11 @@ func (i *OpenCodeInstaller) Install() error {
   }
 }`, fenrirPath)
 
-	return os.WriteFile(configPath, []byte(config), 0644)
+	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
+		return err
+	}
+
+	return os.WriteFile(instructionsPath, []byte(fenrirInstructions), 0644)
 }
 
 type ClaudeCodeInstaller struct{}
@@ -221,20 +266,7 @@ func (i *ClaudeCodeInstaller) Install() error {
 		return err
 	}
 
-	fenrirMD := `# Fenrir Protocol
-
-You have access to Fenrir for project memory.
-
-## MANDATORY:
-- START: Call mem_session_start with your goal
-- BEFORE installing any package: Call pkg_check
-- AFTER any bugfix/decision/discovery: Call mem_save
-- END: Call mem_session_end
-
-## After compaction:
-Immediately call mem_context to recover session state.`
-
-	return os.WriteFile("FENRIR.md", []byte(fenrirMD), 0644)
+	return os.WriteFile("FENRIR.md", []byte(fenrirInstructions), 0644)
 }
 
 type CursorInstaller struct{}
@@ -258,7 +290,11 @@ func (i *CursorInstaller) Install() error {
   }
 }`, fenrirPath)
 
-	return os.WriteFile(".cursor/mcp.json", []byte(config), 0644)
+	if err := os.WriteFile(".cursor/mcp.json", []byte(config), 0644); err != nil {
+		return err
+	}
+
+	return os.WriteFile("FENRIR.md", []byte(fenrirInstructions), 0644)
 }
 
 type WindsurfInstaller struct{}
@@ -282,7 +318,11 @@ func (i *WindsurfInstaller) Install() error {
   }
 }`, fenrirPath)
 
-	return os.WriteFile(".windsurf/mcp.json", []byte(config), 0644)
+	if err := os.WriteFile(".windsurf/mcp.json", []byte(config), 0644); err != nil {
+		return err
+	}
+
+	return os.WriteFile("FENRIR.md", []byte(fenrirInstructions), 0644)
 }
 
 type AntigravityInstaller struct{}
@@ -306,7 +346,11 @@ func (i *AntigravityInstaller) Install() error {
   }
 }`, fenrirPath)
 
-	return os.WriteFile(".antigravity/mcp.json", []byte(config), 0644)
+	if err := os.WriteFile(".antigravity/mcp.json", []byte(config), 0644); err != nil {
+		return err
+	}
+
+	return os.WriteFile("FENRIR.md", []byte(fenrirInstructions), 0644)
 }
 
 type GeminiCLIInstaller struct{}
@@ -334,15 +378,7 @@ func (i *GeminiCLIInstaller) Install() error {
 		return err
 	}
 
-	fenrirMD := `# Fenrir Protocol
-
-You have access to Fenrir for project memory.
-
-## MANDATORY:
-- START: Call mem_session_start with your goal
-- END: Call mem_session_end`
-
-	return os.WriteFile("FENRIR.md", []byte(fenrirMD), 0644)
+	return os.WriteFile("FENRIR.md", []byte(fenrirInstructions), 0644)
 }
 
 type VSCodeInstaller struct{}
@@ -396,6 +432,10 @@ func (i *GenericInstaller) Install() error {
 		fenrirPath = "fenrir"
 	}
 
+	home, _ := os.UserHomeDir()
+	fenrirMdPath := home + "/FENRIR.md"
+	os.WriteFile(fenrirMdPath, []byte(fenrirInstructions), 0644)
+
 	fmt.Println("Generic MCP setup:")
 	fmt.Printf("Add this to your MCP config:\n\n")
 	fmt.Printf(`{
@@ -407,6 +447,7 @@ func (i *GenericInstaller) Install() error {
   }
 }`, fenrirPath)
 	fmt.Println()
+	fmt.Println("Instructions saved to: " + fenrirMdPath)
 	return nil
 }
 
