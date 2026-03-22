@@ -124,7 +124,7 @@ mem_context
 
 ## First Use
 
-1. Install: `brew install TU_ORG/tap/fenrir`
+1. Install: `brew install andragon31/tap/fenrir`
 2. Setup: `fenrir setup [your-agent]`
 3. Restart your AI agent
 4. Start working - Fenrir will guide you

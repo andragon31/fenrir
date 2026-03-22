@@ -5,13 +5,13 @@
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TU_ORG/fenrir/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/andragon31/fenrir/main/install.sh | sh
 ```
 
 ### Windows
 
 ```powershell
-irm https://raw.githubusercontent.com/TU_ORG/fenrir/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/andragon31/fenrir/main/install.ps1 | iex
 ```
 
 ## Package Managers
@@ -19,19 +19,12 @@ irm https://raw.githubusercontent.com/TU_ORG/fenrir/main/install.ps1 | iex
 ### Homebrew (macOS / Linux)
 
 ```bash
-brew install TU_ORG/tap/fenrir
-```
-
-### Scoop (Windows)
-
-```bash
-scoop bucket add fenrir https://github.com/TU_ORG/scoop-fenrir
-scoop install fenrir
+brew install andragon31/tap/fenrir
 ```
 
 ### Binary Release
 
-Download from [GitHub Releases](https://github.com/TU_ORG/fenrir/releases):
+Download from [GitHub Releases](https://github.com/andragon31/fenrir/releases):
 
 | OS | Arch | Download |
 |----|------|----------|
@@ -52,7 +45,7 @@ sudo mv fenrir /usr/local/bin/
 ## Build from Source
 
 ```bash
-git clone https://github.com/TU_ORG/fenrir
+git clone https://github.com/andragon31/fenrir
 cd fenrir
 go install ./cmd/fenrir
 ```

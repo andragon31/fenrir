@@ -30,12 +30,12 @@ SQLite + FTS5 (~/.fenrir/fenrir.db)
 
 **macOS / Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TU_ORG/fenrir/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/andragon31/fenrir/main/install.sh | sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/TU_ORG/fenrir/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/andragon31/fenrir/main/install.ps1 | iex
 ```
 
 ### Setup Your Agent
