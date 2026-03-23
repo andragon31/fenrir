@@ -29,41 +29,49 @@ Fenrir es **agnóstico** y funciona en cualquier IDE que soporte agentes MCP:
 - **IDEs**: Cursor, VS Code, Windsurf, Zed.
 - **Llenguajes**: Soporte universal (Go, TS, Python, Rust, etc.).
 
-## 6. Detalles Técnicos (Deep Dive para Devs)
+## 6. Instalación y Despliegue 🚀
+Fenrir se instala como un binario único que actúa como servidor MCP.
 
-### 6.1 Gestión de Memoria: El Grafo Semántico
-Fenrir no guarda "texto plano", sino que construye un **Grafo de Conocimiento** en una base de datos **SQLite** altamente optimizada:
-- **Nodos & Aristas**: Cada descubrimiento es un `Node` (tipo: `observation`, `decision`, `arch`). Las relaciones (`Edge`) conectan estos nodos para entender la jerarquía (ej. "Función A -- depende de --> Librería B").
-- **FTS5 (Full Text Search)**: Implementamos búsqueda por texto completo sobre los nodos para que la recuperación de contexto sea instantánea (<10ms), incluso con miles de entradas.
-- **DNA de Sesión**: Al finalizar una sesión, Fenrir ejecuta un proceso de **destilación** que resume los cambios (`files_modified`), hallazgos y decisiones en un solo objeto de contexto denso.
+### 6.1 Instalación Rápida (PowerShell)
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+*Este comando descarga/actualiza el binario de Fenrir y lo agrega automáticamente al PATH de tu sistema.*
 
-### 6.2 Motor de Gobernanza y Verificadores
-La arquitectura de gobernanza reside en `internal/graph/arch.go`:
-- **Caché de Políticas**: Implementamos un `policyCache` protegido por un `sync.RWMutex`. Esto permite que el agente verifique cada acción contra cientos de decisiones previas sin latencia de disco.
-- **Invalidación Inteligente**: El caché se invalida automáticamente solo cuando se detecta un nuevo nodo de tipo `decision` o `policy`, garantizando integridad de datos.
+### 6.2 Configuración en Herramientas (Agents/IDEs)
+- **OpenCode**: Ejecuta `fenrir setup opencode`. Esto inyecta automáticamente la configuración en tu `opencode.json`.
+- **Claude Code**: La configuración se realiza agregando el binario al archivo de configuración de MCP de Claude (típicamente en `~/.config/claude/mcp.json`).
+- **Cursor / VS Code**: Ve a la configuración de "Project Rules" o MCP y agrega un nuevo servidor con el comando `fenrir mcp`.
 
-### 6.3 Concurrencia y Eficiencia
-Para no ralentizar el ciclo de vida del agente, Fenrir utiliza **Goroutines** para tareas pesadas:
-- **Async Drift Calculation**: El cálculo de la deriva arquitectónica se dispara en segundo plano al cerrar una sesión.
-- **Async Audit Logging**: Cada llamada a herramienta se registra de forma asíncrona, permitiendo que el agente reciba su respuesta de inmediato mientras Fenrir persiste el log en disco.
+## 7. Guía de Uso para Desarrolladores 🛠️
 
-### 6.4 Seguridad en el Supply Chain
-El módulo `pkg_audit` utiliza heurísticas avanzadas:
-- **Levenshtein Distance**: Detecta ataques de **Typosquatting** (ej. si intentas instalar `lodas` en lugar de `lodash`).
-- **Age/Downloads Heuristics**: Alerta si un paquete es extremadamente nuevo o tiene muy pocas descargas, indicadores comunes de malware.
+### 7.1 Comandos Clave (CLI)
+| Comando | Propósito |
+| :--- | :--- |
+| `fenrir version` | Verifica la versión instalada (v0.6.0). |
+| `fenrir stats` | Resumen rápido de nodos, sesiones y auditorías. |
+| `fenrir tui` / `main` | Abre el Dashboard interactivo para ver el Drift Analysis. |
+| `fenrir setup [tool]` | Autoconfiguración para agentes específicos. |
 
-### 6.5 Integración MCP (Model Context Protocol)
-Fenrir expone sus capacidades como un servidor MCP estandarizado. Esto permite que cualquier IA compatible consuma las herramientas sin necesidad de código personalizado:
-- **Server-Side Handlers**: Los handlers en `internal/mcp/server.go` actúan como puente entre la petición JSON-RPC y la lógica del grafo en Go.
+### 7.2 Cómo Interactuar vía IA
+Una vez configurado, no tienes que usar la CLI manualmente. Simplemente habla con tu agente:
+- *"Inicia sesión de memoria"*
+- *"¿Cómo está la salud arquitectónica del proyecto?"*
+- *"Analiza el impacto de refactorizar el módulo X"*
 
-## 7. Capacidades Core (v0.6.0)
-| Módulo | Función Técnica | Beneficio Dev |
-| :--- | :--- | :--- |
-| **Memoria** | Almacenamiento semántico y FTS5. | Adiós a la repetición de contexto. |
-| **Gobernanza** | Motor de verificación con caché mutex. | Cumplimiento estricto de arquitectura. |
-| **Seguridad** | Auditoría heurística de dependencias. | Blindaje contra ataques de cadena de suministro. |
-| **Análisis** | Análisis de impacto (BFS) y Drift. | Entender las consecuencias de cada cambio. |
-| **TUI** | Interfaz en Bubble Tea (Go). | Monitoreo visual de la salud del proyecto. |
+---
+
+## 8. Detalles Técnicos (Deep Dive para Devs)
+
+### 8.1 Gestión de Memoria: El Grafo Semántico
+Fenrir construye un **Grafo de Conocimiento** en una base de datos **SQLite** altamente optimizada:
+- **Nodos & Aristas**: Cada descubrimiento es un `Node` (tipo: `observation`, `decision`, `arch`). Las relaciones (`Edge`) conectan estos nodos para entender la jerarquía.
+- **FTS5 (Full Text Search)**: Búsqueda por texto completo sobre los nodos para recuperación instantánea (<10ms).
+- **DNA de Sesión**: Proceso de destilación de contexto al cerrar sesiones.
+
+### 8.2 Motor de Gobernanza y Verificadores
+- **Caché de Políticas**: `policyCache` protegido por `sync.RWMutex` para verificaciones en tiempo real sin latencia de disco.
+- **Concurrencia**: Uso de **Goroutines** para cálculos de Drift y logs de auditoría sin bloquear la respuesta al agente.
 
 ---
 *Fenrir es el guardián de la integridad técnica de tu código.*
