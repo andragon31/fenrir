@@ -29,14 +29,41 @@ Fenrir es **agnóstico** y funciona en cualquier IDE que soporte agentes MCP:
 - **IDEs**: Cursor, VS Code, Windsurf, Zed.
 - **Llenguajes**: Soporte universal (Go, TS, Python, Rust, etc.).
 
-## 6. Capacidades Core (v0.6.0)
-| Módulo | Función Principal |
-| :--- | :--- |
-| **Memoria** | Guardado de descubrimientos, búsqueda semántica y recuperación de contexto. |
-| **Gobernanza** | Verificación de acciones contra decisiones de arquitectura pasadas. |
-| **Seguridad** | Auditoría de paquetes, chequeo de licencias y detección de typosquatting. |
-| **Análisis** | Cálculo de derivas (drift) y predicción de impacto de cambios. |
-| **Visualización** | Generación de gráficas Mermaid y Dashboard TUI interactivo. |
+## 6. Detalles Técnicos (Deep Dive para Devs)
+
+### 6.1 Gestión de Memoria: El Grafo Semántico
+Fenrir no guarda "texto plano", sino que construye un **Grafo de Conocimiento** en una base de datos **SQLite** altamente optimizada:
+- **Nodos & Aristas**: Cada descubrimiento es un `Node` (tipo: `observation`, `decision`, `arch`). Las relaciones (`Edge`) conectan estos nodos para entender la jerarquía (ej. "Función A -- depende de --> Librería B").
+- **FTS5 (Full Text Search)**: Implementamos búsqueda por texto completo sobre los nodos para que la recuperación de contexto sea instantánea (<10ms), incluso con miles de entradas.
+- **DNA de Sesión**: Al finalizar una sesión, Fenrir ejecuta un proceso de **destilación** que resume los cambios (`files_modified`), hallazgos y decisiones en un solo objeto de contexto denso.
+
+### 6.2 Motor de Gobernanza y Verificadores
+La arquitectura de gobernanza reside en `internal/graph/arch.go`:
+- **Caché de Políticas**: Implementamos un `policyCache` protegido por un `sync.RWMutex`. Esto permite que el agente verifique cada acción contra cientos de decisiones previas sin latencia de disco.
+- **Invalidación Inteligente**: El caché se invalida automáticamente solo cuando se detecta un nuevo nodo de tipo `decision` o `policy`, garantizando integridad de datos.
+
+### 6.3 Concurrencia y Eficiencia
+Para no ralentizar el ciclo de vida del agente, Fenrir utiliza **Goroutines** para tareas pesadas:
+- **Async Drift Calculation**: El cálculo de la deriva arquitectónica se dispara en segundo plano al cerrar una sesión.
+- **Async Audit Logging**: Cada llamada a herramienta se registra de forma asíncrona, permitiendo que el agente reciba su respuesta de inmediato mientras Fenrir persiste el log en disco.
+
+### 6.4 Seguridad en el Supply Chain
+El módulo `pkg_audit` utiliza heurísticas avanzadas:
+- **Levenshtein Distance**: Detecta ataques de **Typosquatting** (ej. si intentas instalar `lodas` en lugar de `lodash`).
+- **Age/Downloads Heuristics**: Alerta si un paquete es extremadamente nuevo o tiene muy pocas descargas, indicadores comunes de malware.
+
+### 6.5 Integración MCP (Model Context Protocol)
+Fenrir expone sus capacidades como un servidor MCP estandarizado. Esto permite que cualquier IA compatible consuma las herramientas sin necesidad de código personalizado:
+- **Server-Side Handlers**: Los handlers en `internal/mcp/server.go` actúan como puente entre la petición JSON-RPC y la lógica del grafo en Go.
+
+## 7. Capacidades Core (v0.6.0)
+| Módulo | Función Técnica | Beneficio Dev |
+| :--- | :--- | :--- |
+| **Memoria** | Almacenamiento semántico y FTS5. | Adiós a la repetición de contexto. |
+| **Gobernanza** | Motor de verificación con caché mutex. | Cumplimiento estricto de arquitectura. |
+| **Seguridad** | Auditoría heurística de dependencias. | Blindaje contra ataques de cadena de suministro. |
+| **Análisis** | Análisis de impacto (BFS) y Drift. | Entender las consecuencias de cada cambio. |
+| **TUI** | Interfaz en Bubble Tea (Go). | Monitoreo visual de la salud del proyecto. |
 
 ---
-*Fenrir no es solo una herramienta, es el guardián de la integridad técnica de tu código.*
+*Fenrir es el guardián de la integridad técnica de tu código.*
