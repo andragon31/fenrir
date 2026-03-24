@@ -21,7 +21,7 @@ if (Test-Path $EXE_PATH) {
     Write-Host "Fenrir already installed. Updating..." -ForegroundColor Yellow
 }
 
-Write-Host "[1/3] Downloading Fenrir..."
+Write-Host "[1/3] Downloading Fenrir..." -ForegroundColor DarkCyan
 $TMP = "$env:TEMP\fenrir_install_$PID.exe"
 try {
     Invoke-WebRequest -Uri $URL -OutFile $TMP -UseBasicParsing
@@ -30,15 +30,12 @@ try {
     exit 1
 }
 
-Write-Host "[2/3] Installing to $INSTALL_DIR..."
+Write-Host "[2/3] Installing to $INSTALL_DIR..." -ForegroundColor DarkCyan
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
-if (Test-Path $EXE_PATH) { 
-    Remove-Item $EXE_PATH -Force 
-}
-Copy-Item -Path $TMP -Destination $EXE_PATH -Force
-Remove-Item -Path $TMP -Force
+Copy-Item -Path $TMP -Destination $EXE_PATH -Force -ErrorAction Stop
+Remove-Item -Path $TMP -Force -ErrorAction SilentlyContinue
 
-Write-Host "[3/3] Adding to PATH..."
+Write-Host "[3/3] Adding to PATH..." -ForegroundColor DarkCyan
 
 $currentMachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
 $currentUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
