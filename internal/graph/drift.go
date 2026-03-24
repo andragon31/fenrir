@@ -18,11 +18,12 @@ type DriftScore struct {
 }
 
 type ContextResult struct {
-	ActiveSessions    int         `json:"active_sessions"`
-	RecentObservations int        `json:"recent_observations"`
-	Observations      []Node      `json:"observations"`
-	Predictions       []Prediction `json:"predictions"`
-	DriftAlerts       []DriftAlert `json:"drift_alerts"`
+	ActiveSessions     int                    `json:"active_sessions"`
+	RecentObservations int                    `json:"recent_observations"`
+	Observations       []Node                 `json:"observations"`
+	Predictions        []Prediction           `json:"predictions"`
+	DriftAlerts        []DriftAlert           `json:"drift_alerts"`
+	AutoInjected       map[string]interface{} `json:"auto_injected_context,omitempty"`
 }
 
 type Prediction struct {

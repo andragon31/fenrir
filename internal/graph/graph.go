@@ -129,34 +129,6 @@ func (g *Graph) Init() error {
 			closed_at DATETIME
 		)`,
 
-		`CREATE TABLE IF NOT EXISTS audit_log (
-			id TEXT PRIMARY KEY,
-			session_id TEXT NOT NULL,
-			tool_called TEXT NOT NULL,
-			action_type TEXT NOT NULL,
-			target TEXT,
-			risk_level TEXT DEFAULT 'low',
-			result TEXT DEFAULT 'success',
-			metadata TEXT,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)`,
-
-		`CREATE TABLE IF NOT EXISTS pkg_cache (
-			id TEXT PRIMARY KEY,
-			ecosystem TEXT NOT NULL,
-			name TEXT NOT NULL,
-			version TEXT,
-			"exists" INTEGER NOT NULL,
-			trusted INTEGER DEFAULT 1,
-			cve_count INTEGER DEFAULT 0,
-			license TEXT,
-			downloads INTEGER DEFAULT 0,
-			age_days INTEGER DEFAULT 0,
-			response TEXT,
-			cached_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			expires_at DATETIME NOT NULL
-		)`,
-
 		`CREATE TABLE IF NOT EXISTS drift_scores (
 			id TEXT PRIMARY KEY,
 			module TEXT NOT NULL,
@@ -164,6 +136,113 @@ func (g *Graph) Init() error {
 			violations INTEGER DEFAULT 0,
 			sessions INTEGER DEFAULT 0,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS incidents (
+			id TEXT PRIMARY KEY,
+			"type" TEXT NOT NULL,
+			title TEXT NOT NULL,
+			description TEXT,
+			severity TEXT DEFAULT 'medium',
+			status TEXT DEFAULT 'open',
+			module TEXT,
+			plan_id TEXT,
+			resolved_at DATETIME,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS conflicts (
+			id TEXT PRIMARY KEY,
+			node_a TEXT NOT NULL,
+			node_b TEXT NOT NULL,
+			description TEXT,
+			resolved INTEGER DEFAULT 0,
+			resolution TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS pending_rules (
+			id TEXT PRIMARY KEY,
+			rule_id TEXT NOT NULL,
+			reason TEXT,
+			status TEXT DEFAULT 'pending',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS scan_runs (
+			id TEXT PRIMARY KEY,
+			"type" TEXT NOT NULL,
+			status TEXT DEFAULT 'running',
+			results TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			completed_at DATETIME
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS velocity_metrics (
+			id TEXT PRIMARY KEY,
+			metric_name TEXT NOT NULL,
+			value REAL,
+			module TEXT,
+			session_id TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS pr_summaries (
+			id TEXT PRIMARY KEY,
+			plan_id TEXT,
+			pr_number INTEGER,
+			summary TEXT,
+			quality_score REAL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS commit_registry (
+			id TEXT PRIMARY KEY,
+			commit_hash TEXT NOT NULL,
+			plan_id TEXT,
+			session_id TEXT,
+			message TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS specs (
+			id TEXT PRIMARY KEY,
+			capability TEXT NOT NULL,
+			title TEXT NOT NULL,
+			requirement TEXT NOT NULL,
+			scenarios TEXT NOT NULL,
+			status TEXT DEFAULT 'active',
+			node_id TEXT REFERENCES nodes(id),
+			imported_from TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS spec_deltas (
+			id TEXT PRIMARY KEY,
+			plan_id TEXT NOT NULL,
+			spec_id TEXT REFERENCES specs(id),
+			delta_type TEXT NOT NULL,
+			description TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS session_checkpoints (
+			id TEXT PRIMARY KEY,
+			session_id TEXT NOT NULL REFERENCES sessions(id),
+			trigger TEXT NOT NULL,
+			summary TEXT,
+			snapshot TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS prompts (
+			id TEXT PRIMARY KEY,
+			session_id TEXT REFERENCES sessions(id),
+			text TEXT NOT NULL,
+			module TEXT,
+			node_id TEXT REFERENCES nodes(id),
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 
 		`CREATE TABLE IF NOT EXISTS meta (
@@ -193,12 +272,16 @@ func (g *Graph) Init() error {
 		"CREATE INDEX IF NOT EXISTS idx_edges_from ON edges(from_id)",
 		"CREATE INDEX IF NOT EXISTS idx_edges_to ON edges(to_id)",
 		"CREATE INDEX IF NOT EXISTS idx_edges_rel ON edges(relation)",
-		"CREATE INDEX IF NOT EXISTS idx_audit_session ON audit_log(session_id)",
-		"CREATE INDEX IF NOT EXISTS idx_audit_risk ON audit_log(risk_level)",
 		"CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type)",
 		"CREATE INDEX IF NOT EXISTS idx_nodes_session ON nodes(session_id)",
 		"CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)",
-		"CREATE INDEX IF NOT EXISTS idx_pkg_cache_expires ON pkg_cache(expires_at)",
+		"CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status)",
+		"CREATE INDEX IF NOT EXISTS idx_incidents_severity ON incidents(severity)",
+		"CREATE INDEX IF NOT EXISTS idx_specs_capability ON specs(capability)",
+		"CREATE INDEX IF NOT EXISTS idx_specs_status ON specs(status)",
+		"CREATE INDEX IF NOT EXISTS idx_spec_deltas_plan ON spec_deltas(plan_id)",
+		"CREATE INDEX IF NOT EXISTS idx_checkpoints_session ON session_checkpoints(session_id)",
+		"CREATE INDEX IF NOT EXISTS idx_prompts_session ON prompts(session_id)",
 	}
 
 	for _, idx := range indices {

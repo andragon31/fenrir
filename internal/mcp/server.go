@@ -34,10 +34,11 @@ func NewServer(g *graph.Graph, logger *log.Logger) *Server {
 
 func (s *Server) registerAllTools() {
 	s.registerMemoryTools()
-	s.registerValidatorTools()
+	s.registerMemoryExtendedTools()
+	s.registerKnowledgeLifecycleTools()
 	s.registerEnforcerTools()
-	s.registerShieldTools()
 	s.registerIntelligenceTools()
+	s.registerSpecsTools()
 }
 
 func (s *Server) registerMemoryTools() {
@@ -56,11 +57,12 @@ func (s *Server) registerMemoryTools() {
 	s.server.AddTool(memSave, s.handleMemSave)
 
 	memFind := mcp.NewTool("mem_find",
-		mcp.WithDescription("Search the knowledge graph using full-text search"),
+		mcp.WithDescription("Search the knowledge graph using full-text search. Returns compact results by default for token efficiency."),
 		mcp.WithString("query", mcp.Required(), mcp.Description("Search query")),
 		mcp.WithString("type", mcp.Description("Filter by node type")),
 		mcp.WithString("scope", mcp.Description("Filter by module or file path")),
 		mcp.WithNumber("limit", mcp.Description("Maximum results")),
+		mcp.WithBoolean("include_content", mcp.Description("Include full content instead of compact results")),
 	)
 	s.server.AddTool(memFind, s.handleMemFind)
 
@@ -80,7 +82,7 @@ func (s *Server) registerMemoryTools() {
 	s.server.AddTool(memTimeline, s.handleMemTimeline)
 
 	memSessionStart := mcp.NewTool("mem_session_start",
-		mcp.WithDescription("Register session start and load predictive context"),
+		mcp.WithDescription("Register session start and load predictive context. Auto-injects previous context."),
 		mcp.WithString("goal", mcp.Required(), mcp.Description("What you intend to accomplish")),
 		mcp.WithString("module", mcp.Description("Primary module you'll be working in")),
 	)
@@ -102,6 +104,83 @@ func (s *Server) registerMemoryTools() {
 		mcp.WithNumber("limit", mcp.Description("Number of sessions to show")),
 	)
 	s.server.AddTool(memDNA, s.handleMemDNA)
+}
+
+func (s *Server) registerMemoryExtendedTools() {
+	memGetObservation := mcp.NewTool("mem_get_observation",
+		mcp.WithDescription("Get full content of an observation including graph relationships (Layer 3 of Progressive Disclosure)"),
+		mcp.WithString("node_id", mcp.Required(), mcp.Description("Node ID to retrieve")),
+	)
+	s.server.AddTool(memGetObservation, s.handleMemGetObservation)
+
+	memSavePrompt := mcp.NewTool("mem_save_prompt",
+		mcp.WithDescription("Save the original developer prompt before agent interpretation"),
+		mcp.WithString("text", mcp.Required(), mcp.Description("Exact text of the developer prompt")),
+		mcp.WithString("module", mcp.Description("Module context")),
+	)
+	s.server.AddTool(memSavePrompt, s.handleMemSavePrompt)
+
+	memSessionCheckpoint := mcp.NewTool("mem_session_checkpoint",
+		mcp.WithDescription("Create a checkpoint for compaction recovery"),
+		mcp.WithString("trigger", mcp.Description("Trigger type"), mcp.Enum("compaction", "manual", "auto")),
+		mcp.WithString("summary", mcp.Description("Summary of session state")),
+	)
+	s.server.AddTool(memSessionCheckpoint, s.handleMemSessionCheckpoint)
+}
+
+func (s *Server) registerKnowledgeLifecycleTools() {
+	graphReview := mcp.NewTool("graph_review",
+		mcp.WithDescription("Review knowledge graph for stale, expiring, or conflicting observations"),
+		mcp.WithBoolean("stale", mcp.Description("Show stale observations")),
+		mcp.WithBoolean("expiring", mcp.Description("Show expiring observations")),
+		mcp.WithBoolean("conflicts", mcp.Description("Show conflicting observations")),
+	)
+	s.server.AddTool(graphReview, s.handleGraphReview)
+
+	graphExpire := mcp.NewTool("graph_expire",
+		mcp.WithDescription("Mark observation as expired"),
+		mcp.WithString("node_id", mcp.Required(), mcp.Description("Node ID")),
+		mcp.WithString("replaced_by", mcp.Description("ID of replacement node")),
+	)
+	s.server.AddTool(graphExpire, s.handleGraphExpire)
+
+	nodeAuthorize := mcp.NewTool("node_authorize",
+		mcp.WithDescription("Promote observation authority level"),
+		mcp.WithString("node_id", mcp.Required(), mcp.Description("Node ID")),
+		mcp.WithString("authority", mcp.Required(), mcp.Description("Authority level"), mcp.Enum("exploratory", "confirmed", "authoritative")),
+	)
+	s.server.AddTool(nodeAuthorize, s.handleNodeAuthorize)
+}
+
+func (s *Server) registerSpecsTools() {
+	specSave := mcp.NewTool("spec_save",
+		mcp.WithDescription("Save a requirement in GIVEN/WHEN/THEN format"),
+		mcp.WithString("capability", mcp.Required(), mcp.Description("Capability area")),
+		mcp.WithString("title", mcp.Required(), mcp.Description("Requirement title")),
+		mcp.WithString("requirement", mcp.Required(), mcp.Description("Requirement text in GIVEN/WHEN/THEN format")),
+		mcp.WithString("scenarios", mcp.Description("JSON array of GIVEN/WHEN/THEN scenarios")),
+	)
+	s.server.AddTool(specSave, s.handleSpecSave)
+
+	specList := mcp.NewTool("spec_list",
+		mcp.WithDescription("List active specs organized by capability"),
+		mcp.WithString("capability", mcp.Description("Filter by capability")),
+		mcp.WithString("status", mcp.Description("Filter by status")),
+	)
+	s.server.AddTool(specList, s.handleSpecList)
+
+	specCheck := mcp.NewTool("spec_check",
+		mcp.WithDescription("Verify if proposed change affects any active specs"),
+		mcp.WithString("proposed_change", mcp.Required(), mcp.Description("Description of proposed change")),
+		mcp.WithString("module", mcp.Description("Module being changed")),
+	)
+	s.server.AddTool(specCheck, s.handleSpecCheck)
+
+	specDelta := mcp.NewTool("spec_delta",
+		mcp.WithDescription("Generate delta of specs affected by a completed plan"),
+		mcp.WithString("plan_id", mcp.Required(), mcp.Description("Plan ID")),
+	)
+	s.server.AddTool(specDelta, s.handleSpecDelta)
 }
 
 func (s *Server) registerValidatorTools() {
@@ -238,7 +317,7 @@ func (s *Server) RunStdio() error {
 
 func (s *Server) handleMemSave(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	title := getString(args, "title")
 	nodeType := getString(args, "type")
 	topicKey := getStringOrDefault(args, "topic_key", "")
@@ -288,24 +367,41 @@ func (s *Server) handleMemSave(ctx context.Context, request mcp.CallToolRequest)
 
 func (s *Server) handleMemFind(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	query := getString(args, "query")
 	nodeType := getStringOrDefault(args, "type", "")
 	scope := getStringOrDefault(args, "scope", "")
 	limit := getIntOrDefault(args, "limit", 10)
+	includeContent := getBoolOrDefault(args, "include_content", false)
 
-	nodes, err := s.graph.Search(query, nodeType, scope, limit, false)
+	if includeContent {
+		nodes, err := s.graph.Search(query, nodeType, scope, limit, false)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		result, _ := json.Marshal(nodes)
+		return mcp.NewToolResultText(string(result)), nil
+	}
+
+	compact, err := s.graph.SearchCompact(query, nodeType, scope, limit)
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	result, _ := json.Marshal(nodes)
-	return mcp.NewToolResultText(string(result)), nil
+	resultMap := map[string]interface{}{
+		"results": compact,
+		"total":   len(compact),
+		"query":   query,
+		"hint":    "Use mem_timeline or mem_get_observation for full content",
+	}
+
+	data, _ := json.Marshal(resultMap)
+	return mcp.NewToolResultText(string(data)), nil
 }
 
 func (s *Server) handleMemContext(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	module := getStringOrDefault(args, "module", "")
 	limit := getIntOrDefault(args, "limit", 20)
 	includePredictions := getBoolOrDefault(args, "include_predictions", true)
@@ -321,7 +417,7 @@ func (s *Server) handleMemContext(ctx context.Context, request mcp.CallToolReque
 
 func (s *Server) handleMemTimeline(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	nodeID := getString(args, "node_id")
 	depth := getIntOrDefault(args, "depth", 2)
 
@@ -341,7 +437,7 @@ func (s *Server) handleMemTimeline(ctx context.Context, request mcp.CallToolRequ
 
 func (s *Server) handleMemSessionStart(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	goal := getString(args, "goal")
 	module := getStringOrDefault(args, "module", "")
 
@@ -351,10 +447,11 @@ func (s *Server) handleMemSessionStart(ctx context.Context, request mcp.CallTool
 	}
 
 	result := map[string]interface{}{
-		"session_id":   sessionID,
-		"context":      sessionCtx,
-		"predictions":  sessionCtx.Predictions,
-		"drift_alerts": sessionCtx.DriftAlerts,
+		"session_id":            sessionID,
+		"context":               sessionCtx,
+		"predictions":           sessionCtx.Predictions,
+		"drift_alerts":          sessionCtx.DriftAlerts,
+		"auto_injected_context": sessionCtx.AutoInjected,
 	}
 	data, _ := json.Marshal(result)
 
@@ -363,7 +460,7 @@ func (s *Server) handleMemSessionStart(ctx context.Context, request mcp.CallTool
 
 func (s *Server) handleMemSessionEnd(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	goal := getString(args, "goal")
 	accomplished := getString(args, "accomplished")
 	discoveries := getStringOrDefault(args, "discoveries", "")
@@ -386,7 +483,7 @@ func (s *Server) handleMemSessionEnd(ctx context.Context, request mcp.CallToolRe
 
 func (s *Server) handleMemDNA(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	sessionID := getStringOrDefault(args, "session_id", "")
 	limit := getIntOrDefault(args, "limit", 5)
 
@@ -411,7 +508,7 @@ func (s *Server) handleMemDNA(ctx context.Context, request mcp.CallToolRequest) 
 
 func (s *Server) handlePkgCheck(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	name := getString(args, "name")
 	ecosystem := getString(args, "ecosystem")
 	version := getStringOrDefault(args, "version", "")
@@ -427,7 +524,7 @@ func (s *Server) handlePkgCheck(ctx context.Context, request mcp.CallToolRequest
 
 func (s *Server) handlePkgLicense(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	name := getString(args, "name")
 	ecosystem := getString(args, "ecosystem")
 
@@ -441,7 +538,7 @@ func (s *Server) handlePkgLicense(ctx context.Context, request mcp.CallToolReque
 
 func (s *Server) handlePkgAudit(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	manifestPath := getStringOrDefault(args, "manifest_path", "")
 
 	issues, err := s.graph.AuditDependencies(manifestPath)
@@ -455,7 +552,7 @@ func (s *Server) handlePkgAudit(ctx context.Context, request mcp.CallToolRequest
 
 func (s *Server) handleArchSave(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	decision := getString(args, "decision")
 	rationale := getString(args, "rationale")
 	scope := getStringOrDefault(args, "scope", "global")
@@ -480,7 +577,7 @@ func (s *Server) handleArchSave(ctx context.Context, request mcp.CallToolRequest
 
 func (s *Server) handleArchVerify(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	proposedAction := getString(args, "proposed_action")
 	context := getStringOrDefault(args, "context", "")
 
@@ -494,7 +591,7 @@ func (s *Server) handleArchVerify(ctx context.Context, request mcp.CallToolReque
 
 func (s *Server) handleArchDrift(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	path := getStringOrDefault(args, "path", "")
 
 	scores, err := s.graph.GetDriftScores(path)
@@ -508,7 +605,7 @@ func (s *Server) handleArchDrift(ctx context.Context, request mcp.CallToolReques
 
 func (s *Server) handlePolicyCheck(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	action := getString(args, "action")
 	context := getStringOrDefault(args, "context", "")
 
@@ -519,7 +616,7 @@ func (s *Server) handlePolicyCheck(ctx context.Context, request mcp.CallToolRequ
 
 func (s *Server) handlePredict(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	module := getStringOrDefault(args, "module", "")
 
 	predictions, err := s.graph.GetPredictions(module)
@@ -533,7 +630,7 @@ func (s *Server) handlePredict(ctx context.Context, request mcp.CallToolRequest)
 		if impact != nil {
 			result := map[string]interface{}{
 				"predictions": predictions,
-				"impact":     impact,
+				"impact":      impact,
 			}
 			data, _ := json.Marshal(result)
 			return mcp.NewToolResultText(string(data)), nil
@@ -568,7 +665,7 @@ func (s *Server) handleArchVisualize(ctx context.Context, request mcp.CallToolRe
 
 func (s *Server) handleAuditLog(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	toolCalled := getString(args, "tool_called")
 	actionType := getString(args, "action_type")
 	target := getStringOrDefault(args, "target", "")
@@ -588,7 +685,7 @@ func (s *Server) handleAuditLog(ctx context.Context, request mcp.CallToolRequest
 
 func (s *Server) handleSessionAudit(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	sessionID := getStringOrDefault(args, "session_id", "")
 	riskLevel := getStringOrDefault(args, "risk_level", "")
 
@@ -607,7 +704,7 @@ func (s *Server) handleSessionAudit(ctx context.Context, request mcp.CallToolReq
 
 func (s *Server) handleInjectGuard(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	content := getString(args, "content")
 
 	suspicious := false
@@ -652,7 +749,7 @@ func (s *Server) handleFenrirStats(ctx context.Context, request mcp.CallToolRequ
 
 func (s *Server) handleInsights(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	insightsType := getStringOrDefault(args, "type", "all")
 
 	insights, err := s.graph.GetInsights()
@@ -676,7 +773,7 @@ func (s *Server) handleInsights(ctx context.Context, request mcp.CallToolRequest
 
 func (s *Server) handleTrace(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	target := getString(args, "target")
 	depth := getIntOrDefault(args, "depth", 3)
 
@@ -691,7 +788,7 @@ func (s *Server) handleTrace(ctx context.Context, request mcp.CallToolRequest) (
 
 func (s *Server) handleConfidenceUpdate(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := request.GetArguments()
-	
+
 	nodeID := getString(args, "node_id")
 	confidence := getFloat(args, "confidence")
 	reason := getString(args, "reason")
@@ -702,6 +799,194 @@ func (s *Server) handleConfidenceUpdate(ctx context.Context, request mcp.CallToo
 	}
 
 	return mcp.NewToolResultText(fmt.Sprintf(`{"node_id": "%s", "confidence": %.2f, "updated": true}`, nodeID, confidence)), nil
+}
+
+func (s *Server) handleMemGetObservation(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	nodeID := getString(args, "node_id")
+
+	result, err := s.graph.GetObservationFull(nodeID)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	data, _ := json.Marshal(result)
+	return mcp.NewToolResultText(string(data)), nil
+}
+
+func (s *Server) handleMemSavePrompt(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	text := getString(args, "text")
+	module := getStringOrDefault(args, "module", "")
+
+	var sessionID string
+	s.graph.DB().QueryRow("SELECT id FROM sessions WHERE status = 'active' ORDER BY started_at DESC LIMIT 1").Scan(&sessionID)
+
+	prompt := &graph.Prompt{
+		SessionID: sessionID,
+		Text:      text,
+		Module:    module,
+	}
+
+	id, err := s.graph.SavePrompt(prompt)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	return mcp.NewToolResultText(fmt.Sprintf(`{"id": "%s", "saved": true}`, id)), nil
+}
+
+func (s *Server) handleMemSessionCheckpoint(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	trigger := getStringOrDefault(args, "trigger", "manual")
+	summary := getStringOrDefault(args, "summary", "")
+
+	var sessionID string
+	s.graph.DB().QueryRow("SELECT id FROM sessions WHERE status = 'active' ORDER BY started_at DESC LIMIT 1").Scan(&sessionID)
+
+	checkpoint := &graph.SessionCheckpoint{
+		SessionID: sessionID,
+		Trigger:   trigger,
+		Summary:   summary,
+		Snapshot:  "{}",
+	}
+
+	id, err := s.graph.SaveCheckpoint(checkpoint)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	return mcp.NewToolResultText(fmt.Sprintf(`{"id": "%s", "checkpoint_created": true}`, id)), nil
+}
+
+func (s *Server) handleGraphReview(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	stale := getBoolOrDefault(args, "stale", false)
+	expiring := getBoolOrDefault(args, "expiring", false)
+	conflicts := getBoolOrDefault(args, "conflicts", false)
+
+	result := map[string]interface{}{}
+
+	if stale {
+		rows, _ := s.graph.Search("", "", "", 20, false)
+		var staleNodes []graph.Node
+		for _, n := range rows {
+			if n.Status == "stale" {
+				staleNodes = append(staleNodes, n)
+			}
+		}
+		result["stale"] = staleNodes
+	}
+
+	if expiring {
+		result["expiring"] = []graph.Node{}
+	}
+
+	if conflicts {
+		result["conflicts"] = []graph.Node{}
+	}
+
+	data, _ := json.Marshal(result)
+	return mcp.NewToolResultText(string(data)), nil
+}
+
+func (s *Server) handleGraphExpire(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	nodeID := getString(args, "node_id")
+
+	err := s.graph.UpdateConfidence(nodeID, 0.0, "expired")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	return mcp.NewToolResultText(fmt.Sprintf(`{"node_id": "%s", "status": "expired"}`, nodeID)), nil
+}
+
+func (s *Server) handleNodeAuthorize(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	nodeID := getString(args, "node_id")
+	authority := getString(args, "authority")
+
+	weightMap := map[string]float64{
+		"exploratory":   0.3,
+		"confirmed":     0.7,
+		"authoritative": 1.0,
+	}
+
+	weight, ok := weightMap[authority]
+	if !ok {
+		weight = 0.5
+	}
+
+	err := s.graph.UpdateConfidence(nodeID, weight, "authorized: "+authority)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	return mcp.NewToolResultText(fmt.Sprintf(`{"node_id": "%s", "authority": "%s", "updated": true}`, nodeID, authority)), nil
+}
+
+func (s *Server) handleSpecSave(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	capability := getString(args, "capability")
+	title := getString(args, "title")
+	requirement := getString(args, "requirement")
+	scenarios := getStringOrDefault(args, "scenarios", "[]")
+
+	spec := &graph.Spec{
+		Capability:  capability,
+		Title:       title,
+		Requirement: requirement,
+		Scenarios:   scenarios,
+	}
+
+	id, err := s.graph.SaveSpec(spec)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	return mcp.NewToolResultText(fmt.Sprintf(`{"id": "%s", "saved": true}`, id)), nil
+}
+
+func (s *Server) handleSpecList(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	capability := getStringOrDefault(args, "capability", "")
+	status := getStringOrDefault(args, "status", "")
+
+	specs, err := s.graph.ListSpecs(capability, status)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	data, _ := json.Marshal(specs)
+	return mcp.NewToolResultText(string(data)), nil
+}
+
+func (s *Server) handleSpecCheck(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	proposedChange := getString(args, "proposed_change")
+	module := getStringOrDefault(args, "module", "")
+
+	result, err := s.graph.CheckSpec(proposedChange, module)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	data, _ := json.Marshal(result)
+	return mcp.NewToolResultText(string(data)), nil
+}
+
+func (s *Server) handleSpecDelta(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	planID := getString(args, "plan_id")
+
+	deltas, err := s.graph.GetSpecDeltas(planID)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	data, _ := json.Marshal(deltas)
+	return mcp.NewToolResultText(string(data)), nil
 }
 
 func getString(args map[string]interface{}, key string) string {
