@@ -13,7 +13,7 @@ import (
 var openCodeFS embed.FS
 
 var (
-	version = "0.6.0"
+	version = "4.0.0"
 )
 
 const fenrirInstructions = `# Fenrir Protocol
