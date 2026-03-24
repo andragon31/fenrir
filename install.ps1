@@ -32,8 +32,8 @@ try {
 
 Write-Host "[2/3] Installing to $INSTALL_DIR..."
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
+if (Test-Path $EXE_PATH) { Remove-Item $EXE_PATH -Force }
 Move-Item -Path $TMP -Destination $EXE_PATH -Force
-Rename-Item -Path $EXE_PATH -NewName "fenrir.exe" -Force
 
 Write-Host "[3/3] Adding to PATH..."
 
